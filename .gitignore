@@ -2,6 +2,9 @@
 .DS_Store
 __pycache__/
 
+# checkpoints
+checkpoints/
+
 # Python artifacts
 *.egg-info/
 
