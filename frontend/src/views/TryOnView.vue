@@ -12,20 +12,6 @@
       </div>
     </div>
 
-    <!-- 功能选择器 -->
-    <div class="feature-selector">
-      <el-radio-group v-model="selectedFeature" size="large">
-        <el-radio-button value="accessory">
-          {{ $t('features.accessoryTryon') }}
-        </el-radio-button>
-        <el-tooltip :content="$t('features.comingSoon')" placement="top">
-          <el-radio-button value="clothing" disabled>
-            {{ $t('features.clothingTryon') }}
-          </el-radio-button>
-        </el-tooltip>
-      </el-radio-group>
-    </div>
-
     <!-- 整合的主面板 -->
     <div class="main-panel">
       <!-- 左侧任务栏 -->
@@ -50,17 +36,14 @@
             <template #image>
               <el-icon class="empty-icon"><DocumentAdd /></el-icon>
             </template>
-            <el-button type="primary" @click="handleNewTask">
-              <el-icon><Plus /></el-icon>
-              {{ $t('taskSidebar.newTask') }}
-            </el-button>
           </el-empty>
         </div>
 
         <!-- 上传表单 -->
         <div class="upload-area" v-if="showUploadForm">
-          <!-- 使用提示 -->
+          <!-- 使用提示 - 饰品试戴 -->
           <el-alert
+            v-if="currentTaskType === 'accessory'"
             class="usage-tips"
             type="info"
             :closable="false"
@@ -78,7 +61,28 @@
             </div>
           </el-alert>
 
-          <div class="upload-section">
+          <!-- 使用提示 - 服装穿戴 -->
+          <el-alert
+            v-if="currentTaskType === 'clothing'"
+            class="usage-tips"
+            type="info"
+            :closable="false"
+          >
+            <template #title>
+              <div class="tips-title">
+                <el-icon><InfoFilled /></el-icon>
+                <span>{{ $t('clothingTryon.usageGuide') }}</span>
+              </div>
+            </template>
+            <div class="tips-content">
+              <p><strong>{{ $t('clothingTryon.supportedTypes') }}：</strong>{{ $t('clothingTryon.supportedTypesDesc') }}</p>
+              <p><strong>{{ $t('clothingTryon.clothingRequirement') }}：</strong>{{ $t('clothingTryon.clothingRequirementDesc') }}</p>
+              <p><strong>{{ $t('clothingTryon.personRequirement') }}：</strong>{{ $t('clothingTryon.personRequirementDesc') }}</p>
+            </div>
+          </el-alert>
+
+          <!-- 饰品试戴上传区域 -->
+          <div v-if="currentTaskType === 'accessory'" class="upload-section">
             <div class="upload-item">
               <h3>{{ $t('tryon.uploadAccessory') }}</h3>
               <ImageUploader v-model="jewelryImage" :label="$t('tryon.uploadAccessory')" />
@@ -97,6 +101,26 @@
             </div>
           </div>
 
+          <!-- 服装穿戴上传区域 -->
+          <div v-if="currentTaskType === 'clothing'" class="upload-section">
+            <div class="upload-item">
+              <h3>{{ $t('clothingTryon.uploadClothing') }}</h3>
+              <ImageUploader v-model="clothingImage" :label="$t('clothingTryon.uploadClothing')" />
+              <div class="upload-hint">
+                <el-icon><Warning /></el-icon>
+                <span>{{ $t('clothingTryon.clothingHint') }}</span>
+              </div>
+            </div>
+            <div class="upload-item">
+              <h3>{{ $t('clothingTryon.uploadPerson') }}</h3>
+              <ImageUploader v-model="personImage" :label="$t('clothingTryon.uploadPerson')" />
+              <div class="upload-hint">
+                <el-icon><Warning /></el-icon>
+                <span>{{ $t('clothingTryon.personHint') }}</span>
+              </div>
+            </div>
+          </div>
+
           <div class="submit-section">
             <el-button
               type="primary"
@@ -104,7 +128,7 @@
               :disabled="!canSubmit"
               @click="handleSubmit"
             >
-              {{ $t('tryon.startTryon') }}
+              {{ currentTaskType === 'accessory' ? $t('tryon.startTryon') : $t('clothingTryon.startTryon') }}
             </el-button>
           </div>
 
@@ -121,10 +145,12 @@
         <ResultDisplay
           v-if="activeTask && activeTask.status === 'completed' && activeTask.result"
           :result-image-url="activeTask.result.resultImageUrl"
+          :task-type="activeTask.taskType"
           :person-image-url="activeTask.result.personImageUrl"
           :jewelry-type="activeTask.result.jewelryType"
           :person-position="activeTask.result.personPosition"
           :original-jewelry-url="activeTask.result.accessoryImageUrl || activeTask.originalImages?.jewelryImageUrl"
+          :original-clothing-url="activeTask.result.clothingImageUrl || activeTask.originalImages?.clothingImageUrl"
           :original-person-url="activeTask.result.serverPersonImageUrl || activeTask.originalImages?.personImageUrl"
           @retry="handleRetry"
         />
@@ -152,19 +178,27 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { VideoCamera, InfoFilled, Warning, DocumentAdd, Plus } from '@element-plus/icons-vue'
+import { VideoCamera, InfoFilled, Warning, DocumentAdd } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import ImageUploader from '../components/ImageUploader.vue'
 import ResultDisplay from '../components/ResultDisplay.vue'
 import TaskSidebar from '../components/TaskSidebar.vue'
-import { submitTryOnTask, getTaskStatus, getTaskResult, deleteTask, resubmitTask } from '../api/tryon'
+import { submitTryOnTask, getTaskStatus, getTaskResult, deleteTask, resubmitTask } from '../api/accessory-try-on'
+import { submitClothingTryOnTask, getClothingTaskStatus, getClothingTaskResult, deleteClothingTask, resubmitClothingTask } from '../api/clothing-try-on'
+import { saveTaskImages, loadTaskImages, deleteTaskImages, cleanupOrphanImages } from '../utils/imageStorage'
 
 const { t } = useI18n()
 
+// 轮询配置常量
+const POLLING_MAX_ATTEMPTS = 120  // 最大轮询次数
+const POLLING_INTERVAL_MS = 2500  // 轮询间隔（毫秒）
+
 // 表单数据
 const jewelryImage = ref(null)
+const clothingImage = ref(null)
 const personImage = ref(null)
 const jewelryType = ref('')
+const clothingType = ref('')
 const personPosition = ref('')
 const useVlModel = ref(true)
 
@@ -176,24 +210,35 @@ const taskList = ref([])
 const activeTaskId = ref('')
 
 // 任务列表持久化到 localStorage
-const TASK_LIST_KEY = 'accessory_tryon_tasks'
-const ACTIVE_TASK_ID_KEY = 'accessory_tryon_active_task_id'
+const TASK_LIST_KEY = 'tryon_tasks'
+const ACTIVE_TASK_ID_KEY = 'tryon_active_task_id'
 
 // 监听任务列表变化，保存到 localStorage
-watch(taskList, (newTaskList) => {
+watch(taskList, async (newTaskList) => {
   try {
     // 序列化任务列表，排除无法序列化的 File 对象和 Blob URL
     const serializableTasks = newTaskList.map(task => ({
       id: task.id,
-      taskNumber: task.taskNumber,  // 保存任务编号，显示时动态翻译
+      taskNumber: task.taskNumber,
+      taskType: task.taskType,  // 保存任务类型
       status: task.status,
-      messageKey: task.messageKey,  // 保存翻译key，显示时动态翻译
-      messageParams: task.messageParams,  // 保存额外的消息参数
+      messageKey: task.messageKey,
+      messageParams: task.messageParams,
       result: task.result,
       serverTaskId: task.serverTaskId
-      // 注意：不保存 originalImages，因为包含 File 对象和 Blob URL
     }))
     localStorage.setItem(TASK_LIST_KEY, JSON.stringify(serializableTasks))
+
+    // 同步保存图片到 IndexedDB（仅保存有 originalImages 的任务）
+    for (const task of newTaskList) {
+      if (task.originalImages) {
+        await saveTaskImages(task.id, {
+          jewelryImage: task.originalImages.jewelryImage,
+          clothingImage: task.originalImages.clothingImage,
+          personImage: task.originalImages.personImage
+        })
+      }
+    }
   } catch (error) {
     console.error('保存任务列表失败:', error)
   }
@@ -208,9 +253,61 @@ watch(activeTaskId, (newActiveTaskId) => {
   }
 })
 
+// 监听表单图片变化，实时同步到当前任务并持久化到 IndexedDB
+// 解决：用户上传图片后切换页面，图片丢失的问题
+watch([jewelryImage, clothingImage, personImage], async ([newJewelry, newClothing, newPerson]) => {
+  const task = activeTask.value
+  if (!task) return
+
+  // 只有当有图片上传时才更新
+  if (!newJewelry && !newClothing && !newPerson) return
+
+  // 初始化 originalImages（如果不存在）
+  if (!task.originalImages) {
+    task.originalImages = {}
+  }
+
+  // 同步图片到当前任务
+  if (task.taskType === 'accessory') {
+    if (newJewelry) {
+      task.originalImages.jewelryImage = newJewelry
+      task.originalImages.jewelryImageUrl = URL.createObjectURL(newJewelry)
+    }
+  } else {
+    if (newClothing) {
+      task.originalImages.clothingImage = newClothing
+      task.originalImages.clothingImageUrl = URL.createObjectURL(newClothing)
+    }
+  }
+
+  if (newPerson) {
+    task.originalImages.personImage = newPerson
+    task.originalImages.personImageUrl = URL.createObjectURL(newPerson)
+  }
+
+  // 立即保存到 IndexedDB
+  await saveTaskImages(task.id, {
+    jewelryImage: task.originalImages.jewelryImage,
+    clothingImage: task.originalImages.clothingImage,
+    personImage: task.originalImages.personImage
+  })
+}, { deep: true })
+
 // 是否可以提交
 const canSubmit = computed(() => {
-  return jewelryImage.value && personImage.value
+  if (currentTaskType.value === 'accessory') {
+    return jewelryImage.value && personImage.value
+  } else {
+    return clothingImage.value && personImage.value
+  }
+})
+
+// 当前任务类型（优先使用活动任务的类型，否则使用选择的功能类型）
+const currentTaskType = computed(() => {
+  if (activeTask.value && activeTask.value.taskType) {
+    return activeTask.value.taskType
+  }
+  return selectedFeature.value
 })
 
 // 当前选中的任务
@@ -250,45 +347,67 @@ async function handleSubmit() {
 // 更新等待上传的任务（将等待上传状态的任务更新为处理中）
 async function handleUpdateWaitingTask(task) {
   const taskId = task.id
+  const taskType = task.taskType || selectedFeature.value
 
-  // 保存原始图片信息（用于重新生成）
-  const jewelryImageUrl = URL.createObjectURL(jewelryImage.value)
+  // 根据任务类型获取对应的图片
+  const mainImage = taskType === 'accessory' ? jewelryImage.value : clothingImage.value
+  const mainImageUrl = URL.createObjectURL(mainImage)
   const personImageUrl = URL.createObjectURL(personImage.value)
 
   // 更新任务的原始图片信息
+  const originalImages = {
+    personImage: personImage.value,
+    personImageUrl: personImageUrl,
+    personPosition: personPosition.value,
+    useVlModel: useVlModel.value
+  }
+
+  if (taskType === 'accessory') {
+    originalImages.jewelryImage = mainImage
+    originalImages.jewelryImageUrl = mainImageUrl
+    originalImages.jewelryType = jewelryType.value
+  } else {
+    originalImages.clothingImage = mainImage
+    originalImages.clothingImageUrl = mainImageUrl
+    originalImages.clothingType = clothingType.value
+  }
+
   updateTask(taskId, {
     status: 'pending',
-    messageKey: 'tryon.preparing',
+    messageKey: taskType === 'accessory' ? 'tryon.preparing' : 'clothingTryon.preparing',
     result: null,
-    originalImages: {
-      jewelryImage: jewelryImage.value,
-      personImage: personImage.value,
-      jewelryImageUrl: jewelryImageUrl,
-      personImageUrl: personImageUrl,
-      jewelryType: jewelryType.value,
-      personPosition: personPosition.value,
-      useVlModel: useVlModel.value
-    }
+    originalImages
   })
 
   try {
     // 构建表单数据
     const formData = new FormData()
-    formData.append('accessory_image', jewelryImage.value)
     formData.append('person_image', personImage.value)
     formData.append('use_vl_model', useVlModel.value)
-    if (jewelryType.value) {
-      formData.append('accessory_type', jewelryType.value)
+
+    if (taskType === 'accessory') {
+      formData.append('accessory_image', mainImage)
+      if (jewelryType.value) {
+        formData.append('accessory_type', jewelryType.value)
+      }
+    } else {
+      formData.append('clothing_image', mainImage)
+      if (clothingType.value) {
+        formData.append('clothing_type', clothingType.value)
+      }
     }
+
     if (personPosition.value) {
       formData.append('person_position', personPosition.value)
     }
 
     // 更新任务状态
-    updateTask(taskId, { status: 'processing', messageKey: 'tryon.uploading' })
+    updateTask(taskId, { status: 'processing', messageKey: taskType === 'accessory' ? 'tryon.uploading' : 'clothingTryon.uploading' })
 
-    // 提交任务
-    const submitRes = await submitTryOnTask(formData)
+    // 根据任务类型提交任务
+    const submitRes = taskType === 'accessory'
+      ? await submitTryOnTask(formData)
+      : await submitClothingTryOnTask(formData)
     updateTask(taskId, { serverTaskId: submitRes.task_id })
 
     // 如果后端因超出上限删除了旧任务，同步更新前端列表
@@ -328,52 +447,71 @@ async function handleUpdateWaitingTask(task) {
 async function handleResubmitExistingTask(task) {
   const taskId = task.id
   const serverTaskId = task.serverTaskId
+  const taskType = task.taskType || selectedFeature.value
 
-  // 清理旧的本地URL，避免重复占用内存
+  // 清理旧的本地URL
   if (task.originalImages) {
     revokeObjectUrls(task.originalImages)
   }
 
-  // 保存原始图片信息（用于重新生成）
-  const jewelryImageUrl = URL.createObjectURL(jewelryImage.value)
+  // 根据任务类型获取对应的图片
+  const mainImage = taskType === 'accessory' ? jewelryImage.value : clothingImage.value
+  const mainImageUrl = URL.createObjectURL(mainImage)
   const personImageUrl = URL.createObjectURL(personImage.value)
 
-  // 更新任务的原始图片信息
+  // 构建原始图片信息
+  const originalImages = {
+    personImage: personImage.value,
+    personImageUrl: personImageUrl,
+    personPosition: personPosition.value,
+    useVlModel: useVlModel.value
+  }
+
+  if (taskType === 'accessory') {
+    originalImages.jewelryImage = mainImage
+    originalImages.jewelryImageUrl = mainImageUrl
+    originalImages.jewelryType = jewelryType.value
+  } else {
+    originalImages.clothingImage = mainImage
+    originalImages.clothingImageUrl = mainImageUrl
+    originalImages.clothingType = clothingType.value
+  }
+
   updateTask(taskId, {
     status: 'pending',
-    messageKey: 'tryon.preparing',
+    messageKey: taskType === 'accessory' ? 'tryon.preparing' : 'clothingTryon.preparing',
     result: null,
-    originalImages: {
-      jewelryImage: jewelryImage.value,
-      personImage: personImage.value,
-      jewelryImageUrl: jewelryImageUrl,
-      personImageUrl: personImageUrl,
-      jewelryType: jewelryType.value,
-      personPosition: personPosition.value,
-      useVlModel: useVlModel.value
-    }
+    originalImages
   })
 
   try {
-    // 构建表单数据
     const formData = new FormData()
-    formData.append('accessory_image', jewelryImage.value)
     formData.append('person_image', personImage.value)
     formData.append('use_vl_model', useVlModel.value)
-    if (jewelryType.value) {
-      formData.append('accessory_type', jewelryType.value)
+
+    if (taskType === 'accessory') {
+      formData.append('accessory_image', mainImage)
+      if (jewelryType.value) {
+        formData.append('accessory_type', jewelryType.value)
+      }
+    } else {
+      formData.append('clothing_image', mainImage)
+      if (clothingType.value) {
+        formData.append('clothing_type', clothingType.value)
+      }
     }
+
     if (personPosition.value) {
       formData.append('person_position', personPosition.value)
     }
 
-    // 更新任务状态
-    updateTask(taskId, { status: 'processing', messageKey: 'tryon.uploading' })
+    updateTask(taskId, { status: 'processing', messageKey: taskType === 'accessory' ? 'tryon.uploading' : 'clothingTryon.uploading' })
 
-    // 调用重新提交API
-    await resubmitTask(serverTaskId, formData)
+    // 根据任务类型调用不同的API
+    taskType === 'accessory'
+      ? await resubmitTask(serverTaskId, formData)
+      : await resubmitClothingTask(serverTaskId, formData)
 
-    // 开始轮询（使用原有的serverTaskId）
     pollTaskStatus(taskId, serverTaskId)
 
   } catch (error) {
@@ -390,66 +528,85 @@ async function handleResubmitExistingTask(task) {
 
 // 创建新任务
 async function handleCreateNewTask() {
-  // 创建新任务，编号基于当前任务列表数量 + 1
   const taskNumber = taskList.value.length + 1
-  const taskId = `local-${Date.now()}`  // 使用时间戳作为唯一ID
+  const taskId = `local-${Date.now()}`
+  const taskType = selectedFeature.value
 
-  // 如果当前有活跃任务且缓存了原始图片，先释放对应的URL
+  // 释放旧任务的URL
   const currentTask = activeTask.value
   if (currentTask && currentTask.originalImages) {
     revokeObjectUrls(currentTask.originalImages)
   }
 
-  // 保存原始图片信息（用于重新生成）
-  const jewelryImageUrl = URL.createObjectURL(jewelryImage.value)
+  // 根据任务类型获取对应的图片
+  const mainImage = taskType === 'accessory' ? jewelryImage.value : clothingImage.value
+  const mainImageUrl = URL.createObjectURL(mainImage)
   const personImageUrl = URL.createObjectURL(personImage.value)
+
+  // 构建原始图片信息
+  const originalImages = {
+    personImage: personImage.value,
+    personImageUrl: personImageUrl,
+    personPosition: personPosition.value,
+    useVlModel: useVlModel.value
+  }
+
+  if (taskType === 'accessory') {
+    originalImages.jewelryImage = mainImage
+    originalImages.jewelryImageUrl = mainImageUrl
+    originalImages.jewelryType = jewelryType.value
+  } else {
+    originalImages.clothingImage = mainImage
+    originalImages.clothingImageUrl = mainImageUrl
+    originalImages.clothingType = clothingType.value
+  }
 
   const newTask = {
     id: taskId,
-    taskNumber: taskNumber,  // 保存任务编号，在显示时动态翻译
+    taskNumber: taskNumber,
+    taskType: taskType,
     status: 'pending',
-    messageKey: 'tryon.preparing',  // 保存翻译key，在显示时动态翻译
+    messageKey: taskType === 'accessory' ? 'tryon.preparing' : 'clothingTryon.preparing',
     result: null,
     serverTaskId: null,
-    // 保存原始图片信息
-    originalImages: {
-      jewelryImage: jewelryImage.value,
-      personImage: personImage.value,
-      jewelryImageUrl: jewelryImageUrl,
-      personImageUrl: personImageUrl,
-      jewelryType: jewelryType.value,
-      personPosition: personPosition.value,
-      useVlModel: useVlModel.value
-    }
+    originalImages
   }
   taskList.value.unshift(newTask)
   activeTaskId.value = taskId
 
   // 保存表单数据
-  const formJewelryImage = jewelryImage.value
+  const formMainImage = mainImage
   const formPersonImage = personImage.value
-  const formJewelryType = jewelryType.value
   const formPersonPosition = personPosition.value
   const formUseVlModel = useVlModel.value
 
   try {
-    // 构建表单数据
     const formData = new FormData()
-    formData.append('accessory_image', formJewelryImage)
     formData.append('person_image', formPersonImage)
     formData.append('use_vl_model', formUseVlModel)
-    if (formJewelryType) {
-      formData.append('accessory_type', formJewelryType)
+
+    if (taskType === 'accessory') {
+      formData.append('accessory_image', formMainImage)
+      if (jewelryType.value) {
+        formData.append('accessory_type', jewelryType.value)
+      }
+    } else {
+      formData.append('clothing_image', formMainImage)
+      if (clothingType.value) {
+        formData.append('clothing_type', clothingType.value)
+      }
     }
+
     if (formPersonPosition) {
       formData.append('person_position', formPersonPosition)
     }
 
-    // 更新任务状态
-    updateTask(taskId, { status: 'processing', messageKey: 'tryon.uploading' })
+    updateTask(taskId, { status: 'processing', messageKey: taskType === 'accessory' ? 'tryon.uploading' : 'clothingTryon.uploading' })
 
-    // 提交任务
-    const submitRes = await submitTryOnTask(formData)
+    // 根据任务类型提交
+    const submitRes = taskType === 'accessory'
+      ? await submitTryOnTask(formData)
+      : await submitClothingTryOnTask(formData)
     updateTask(taskId, { serverTaskId: submitRes.task_id })
 
     // 如果后端因超出上限删除了旧任务，同步更新前端列表
@@ -495,35 +652,40 @@ function updateTask(taskId, updates) {
 
 // 轮询任务状态
 async function pollTaskStatus(localTaskId, serverTaskId) {
-  const maxAttempts = 120
   let attempts = 0
 
-  // 中文消息到翻译key的映射表（用于处理后端返回的中文消息）
+  // 获取任务类型
+  const task = taskList.value.find(t => t.id === localTaskId)
+  const taskType = task?.taskType || 'accessory'
+
+  // 中文消息到翻译key的映射表
   const messageKeyMap = {
-    '准备中...': 'tryon.preparing',
-    '正在上传图片...': 'tryon.uploading',
-    'VL模型分析饰品中...': 'tryon.vlAnalyzing',
+    '准备中...': taskType === 'accessory' ? 'tryon.preparing' : 'clothingTryon.preparing',
+    '正在上传图片...': taskType === 'accessory' ? 'tryon.uploading' : 'clothingTryon.uploading',
+    'VL模型分析图像中...': taskType === 'accessory' ? 'tryon.vlAnalyzing' : 'clothingTryon.vlAnalyzing',
     '试戴图像生成中...': 'tryon.generating',
-    '处理中...': 'tryon.processing'
+    '试穿图像生成中...': 'clothingTryon.generating',
+    '处理中...': taskType === 'accessory' ? 'tryon.processing' : 'clothingTryon.processing'
   }
 
-  while (attempts < maxAttempts) {
+  while (attempts < POLLING_MAX_ATTEMPTS) {
     try {
-      const status = await getTaskStatus(serverTaskId)
+      // 根据任务类型调用不同的API
+      const status = taskType === 'accessory'
+        ? await getTaskStatus(serverTaskId)
+        : await getClothingTaskStatus(serverTaskId)
 
-      // 将后端返回的中文消息映射到翻译key
       const messageKey = messageKeyMap[status.message] || null
       if (messageKey) {
         updateTask(localTaskId, { messageKey: messageKey })
       } else {
-        // 如果没有找到映射，使用原始消息
         updateTask(localTaskId, { message: status.message || t('tryon.processing'), messageKey: null })
       }
 
       if (status.status === 'completed') {
-        const taskResult = await getTaskResult(serverTaskId)
-        // 获取任务名称用于提示（动态翻译）
-        const task = taskList.value.find(t => t.id === localTaskId)
+        const taskResult = taskType === 'accessory'
+          ? await getTaskResult(serverTaskId)
+          : await getClothingTaskResult(serverTaskId)
         const taskName = task ? `${t('tryon.task')} ${task.taskNumber}` : t('tryon.task')
 
         updateTask(localTaskId, {
@@ -536,6 +698,7 @@ async function pollTaskStatus(localTaskId, serverTaskId) {
             personPosition: taskResult.person_position,
             // 保存服务器端的原始图片URL（用于页面切换后恢复显示）
             accessoryImageUrl: taskResult.accessory_image_url,
+            clothingImageUrl: taskResult.clothing_image_url,
             serverPersonImageUrl: taskResult.person_image_url
           }
         })
@@ -565,7 +728,7 @@ async function pollTaskStatus(localTaskId, serverTaskId) {
       // 其他网络错误，继续重试
     }
 
-    await new Promise(resolve => setTimeout(resolve, 2500))
+    await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL_MS))
     attempts++
   }
 
@@ -573,26 +736,27 @@ async function pollTaskStatus(localTaskId, serverTaskId) {
 }
 
 // 新建任务
-function handleNewTask() {
-  // 创建新任务，编号基于当前任务列表数量 + 1
+function handleNewTask(taskType) {
   const taskNumber = taskList.value.length + 1
-  const taskId = `local-${Date.now()}`  // 使用时间戳作为唯一ID
+  const taskId = `local-${Date.now()}`
 
   const newTask = {
     id: taskId,
-    taskNumber: taskNumber,  // 保存任务编号，在显示时动态翻译
-    status: 'waiting_upload',  // 新状态：等待上传
-    messageKey: 'tryon.waitingUpload',  // 保存翻译key
+    taskNumber: taskNumber,
+    taskType: taskType,
+    status: 'waiting_upload',
+    messageKey: taskType === 'accessory' ? 'tryon.waitingUpload' : 'clothingTryon.waitingUpload',
     result: null,
     serverTaskId: null,
-    originalImages: null  // 暂无原始图片
+    originalImages: null
   }
 
   taskList.value.unshift(newTask)
   activeTaskId.value = taskId
 
-  // 清空表单，让用户重新上传
+  // 清空表单
   jewelryImage.value = null
+  clothingImage.value = null
   personImage.value = null
 }
 
@@ -600,7 +764,6 @@ function handleNewTask() {
 async function handleRetry() {
   const currentTask = activeTask.value
 
-  // 检查任务是否存在且有 serverTaskId（后端任务ID）
   if (!currentTask || !currentTask.serverTaskId) {
     ElMessage({
       message: t('tryon.retryFailed'),
@@ -614,37 +777,43 @@ async function handleRetry() {
 
   const taskId = currentTask.id
   const serverTaskId = currentTask.serverTaskId
+  const taskType = currentTask.taskType || 'accessory'
 
-  // 更新当前任务状态为处理中（在当前任务上重试，不创建新任务）
   updateTask(taskId, {
     status: 'processing',
-    messageKey: 'tryon.retrying',
+    messageKey: taskType === 'accessory' ? 'tryon.retrying' : 'clothingTryon.retrying',
     result: null
   })
 
   try {
-    // 构建表单数据
     const formData = new FormData()
     formData.append('use_vl_model', currentTask.originalImages?.useVlModel ?? true)
 
-    // 如果有本地缓存的原始图片，使用它们；否则后端会使用已保存的图片
-    if (currentTask.originalImages?.jewelryImage) {
-      formData.append('accessory_image', currentTask.originalImages.jewelryImage)
-    }
     if (currentTask.originalImages?.personImage) {
       formData.append('person_image', currentTask.originalImages.personImage)
-    }
-    if (currentTask.originalImages?.jewelryType) {
-      formData.append('accessory_type', currentTask.originalImages.jewelryType)
     }
     if (currentTask.originalImages?.personPosition) {
       formData.append('person_position', currentTask.originalImages.personPosition)
     }
 
-    // 调用重新提交API（使用原有的 serverTaskId）
-    await resubmitTask(serverTaskId, formData)
+    if (taskType === 'accessory') {
+      if (currentTask.originalImages?.jewelryImage) {
+        formData.append('accessory_image', currentTask.originalImages.jewelryImage)
+      }
+      if (currentTask.originalImages?.jewelryType) {
+        formData.append('accessory_type', currentTask.originalImages.jewelryType)
+      }
+      await resubmitTask(serverTaskId, formData)
+    } else {
+      if (currentTask.originalImages?.clothingImage) {
+        formData.append('clothing_image', currentTask.originalImages.clothingImage)
+      }
+      if (currentTask.originalImages?.clothingType) {
+        formData.append('clothing_type', currentTask.originalImages.clothingType)
+      }
+      await resubmitClothingTask(serverTaskId, formData)
+    }
 
-    // 开始轮询（使用原有的 serverTaskId）
     pollTaskStatus(taskId, serverTaskId)
 
   } catch (error) {
@@ -667,15 +836,20 @@ async function handleRetry() {
 function handleSelectTask(taskId) {
   activeTaskId.value = taskId
 
-  // 恢复选中任务的图片状态
   const task = taskList.value.find(t => t.id === taskId)
   if (task && task.originalImages) {
-    // 如果任务有原始图片，恢复它们
-    jewelryImage.value = task.originalImages.jewelryImage
+    // 根据任务类型恢复对应的图片
+    if (task.taskType === 'accessory') {
+      jewelryImage.value = task.originalImages.jewelryImage
+      clothingImage.value = null
+    } else {
+      clothingImage.value = task.originalImages.clothingImage
+      jewelryImage.value = null
+    }
     personImage.value = task.originalImages.personImage
   } else {
-    // 如果任务没有图片（如新建的等待上传任务），清空表单
     jewelryImage.value = null
+    clothingImage.value = null
     personImage.value = null
   }
 }
@@ -683,18 +857,18 @@ function handleSelectTask(taskId) {
 // 删除任务
 async function handleRemoveTask(taskId) {
   const task = taskList.value.find(t => t.id === taskId)
+  const taskType = task?.taskType || 'accessory'
 
-  // 如果有服务器端任务ID，调用后端API删除
   if (task && task.serverTaskId) {
     try {
-      await deleteTask(task.serverTaskId)
+      taskType === 'accessory'
+        ? await deleteTask(task.serverTaskId)
+        : await deleteClothingTask(task.serverTaskId)
     } catch (error) {
-      // 即使后端删除失败，也继续删除前端记录（可能任务已过期被清理）
       console.warn('后端删除任务失败:', error)
     }
   }
 
-  // 从前端列表中移除
   const index = taskList.value.findIndex(t => t.id === taskId)
   if (index > -1) {
     if (taskList.value[index].originalImages) {
@@ -703,7 +877,9 @@ async function handleRemoveTask(taskId) {
     taskList.value.splice(index, 1)
   }
 
-  // 如果删除的是当前活动任务，切换到第一个任务
+  // 删除 IndexedDB 中的图片数据
+  await deleteTaskImages(taskId)
+
   if (activeTaskId.value === taskId) {
     activeTaskId.value = taskList.value[0]?.id || ''
   }
@@ -713,6 +889,9 @@ function revokeObjectUrls(originalImages) {
   try {
     if (originalImages.jewelryImageUrl) {
       URL.revokeObjectURL(originalImages.jewelryImageUrl)
+    }
+    if (originalImages.clothingImageUrl) {
+      URL.revokeObjectURL(originalImages.clothingImageUrl)
     }
     if (originalImages.personImageUrl) {
       URL.revokeObjectURL(originalImages.personImageUrl)
@@ -745,7 +924,11 @@ async function validateTasks(tasks) {
     // 情况2：有 serverTaskId 且状态为 processing，验证后端任务是否存在
     if (task.serverTaskId && task.status === 'processing') {
       try {
-        await getTaskStatus(task.serverTaskId)
+        // 根据任务类型调用对应的API
+        const taskType = task.taskType || 'accessory'
+        taskType === 'accessory'
+          ? await getTaskStatus(task.serverTaskId)
+          : await getClothingTaskStatus(task.serverTaskId)
         // 任务存在，返回原任务继续轮询
         return { task, valid: true, needsPoll: true }
       } catch (error) {
@@ -811,7 +994,29 @@ onMounted(async () => {
 
       // 验证任务有效性，清理后端不存在的任务
       const { validatedTasks, tasksNeedingPoll } = await validateTasks(tasks)
+
+      // 从 IndexedDB 恢复每个任务的图片数据
+      for (const task of validatedTasks) {
+        const images = await loadTaskImages(task.id)
+        if (images) {
+          // 重建 originalImages 对象
+          task.originalImages = {
+            jewelryImage: images.jewelryImage,
+            clothingImage: images.clothingImage,
+            personImage: images.personImage,
+            // 重新生成预览 URL
+            jewelryImageUrl: images.jewelryImage ? URL.createObjectURL(images.jewelryImage) : null,
+            clothingImageUrl: images.clothingImage ? URL.createObjectURL(images.clothingImage) : null,
+            personImageUrl: images.personImage ? URL.createObjectURL(images.personImage) : null
+          }
+        }
+      }
+
       taskList.value = validatedTasks
+
+      // 清理 IndexedDB 中不存在于任务列表的孤立图片数据
+      const validTaskIds = validatedTasks.map(t => t.id)
+      await cleanupOrphanImages(validTaskIds)
 
       // 恢复处理中的任务，继续轮询状态
       tasksNeedingPoll.forEach(task => {
@@ -823,16 +1028,22 @@ onMounted(async () => {
     console.error('恢复任务列表失败:', error)
   }
 
-  // 恢复活动任务ID
+  // 恢复活动任务ID，并恢复对应的图片状态
   try {
     const savedActiveTaskId = localStorage.getItem(ACTIVE_TASK_ID_KEY)
     if (savedActiveTaskId) {
       activeTaskId.value = savedActiveTaskId
 
-      // 恢复对应任务的图片状态
+      // 恢复对应任务的图片状态到表单
       const task = taskList.value.find(t => t.id === savedActiveTaskId)
       if (task && task.originalImages) {
-        jewelryImage.value = task.originalImages.jewelryImage
+        if (task.taskType === 'accessory') {
+          jewelryImage.value = task.originalImages.jewelryImage
+          clothingImage.value = null
+        } else {
+          clothingImage.value = task.originalImages.clothingImage
+          jewelryImage.value = null
+        }
         personImage.value = task.originalImages.personImage
       }
     }
@@ -863,22 +1074,6 @@ onMounted(async () => {
 .page-header p {
   font-size: 14px;
   opacity: 0.9;
-}
-
-.feature-selector {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.feature-selector :deep(.el-radio-button__inner) {
-  padding: 12px 24px;
-  font-size: 15px;
-}
-
-.feature-selector :deep(.el-radio-button.is-disabled .el-radio-button__inner) {
-  color: #c0c4cc;
-  cursor: not-allowed;
 }
 
 .author-info {

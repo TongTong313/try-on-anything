@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "try-on-anything"
-version = "1.0.0"
+version = "1.1.0"
 description = "Try On Anything - AI-powered virtual try-on system"
 readme = "README.md"
 requires-python = ">=3.13"

@@ -18,13 +18,17 @@ from datetime import datetime
 # 保存原始代码页（用于退出时恢复）
 _original_codepage = None
 
+
 def setup_windows_encoding():
     """设置 Windows 终端编码为 UTF-8，并保存原始代码页"""
     global _original_codepage
     if sys.platform == 'win32':
         # 获取当前代码页
         try:
-            result = subprocess.run(['chcp'], capture_output=True, text=True, shell=True)
+            result = subprocess.run(['chcp'],
+                                    capture_output=True,
+                                    text=True,
+                                    shell=True)
             # 输出格式: "Active code page: 936"
             if result.stdout:
                 match = result.stdout.strip().split(':')
@@ -40,6 +44,7 @@ def setup_windows_encoding():
             sys.stdout.reconfigure(encoding='utf-8', errors='replace')
         if hasattr(sys.stderr, 'reconfigure'):
             sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 
 def restore_windows_encoding():
     """恢复 Windows 终端原始代码页"""
@@ -117,8 +122,7 @@ def setup_logging():
     console_handler.setLevel(logging.INFO)
     console_formatter = ColoredFormatter(
         fmt='%(asctime)s [%(levelname)s] %(service)s - %(message)s',
-        datefmt='%H:%M:%S'
-    )
+        datefmt='%H:%M:%S')
     console_handler.setFormatter(console_formatter)
 
     # 文件处理器（不带颜色）
@@ -126,8 +130,7 @@ def setup_logging():
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter(
         fmt='%(asctime)s [%(levelname)s] %(service)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+        datefmt='%Y-%m-%d %H:%M:%S')
     file_handler.setFormatter(file_formatter)
 
     # 添加处理器
@@ -143,6 +146,7 @@ def get_logger(service_name):
 
     # 使用适配器添加服务名称
     class ServiceAdapter(logging.LoggerAdapter):
+
         def process(self, msg, kwargs):
             # 在 extra 中添加 service 字段
             if 'extra' not in kwargs:
@@ -162,7 +166,9 @@ def check_dependencies(logger):
     # 检查 uv 是否安装
     try:
         result = subprocess.run(['uv', '--version'],
-                                capture_output=True, check=True, text=True)
+                                capture_output=True,
+                                check=True,
+                                text=True)
         logger.debug(f"uv 版本: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
         errors.append("uv 未安装或不在 PATH 中，请先安装uv")
@@ -170,7 +176,10 @@ def check_dependencies(logger):
     # 检查 npm 是否安装
     try:
         result = subprocess.run(['npm', '--version'],
-                                capture_output=True, check=True, text=True, shell=True)
+                                capture_output=True,
+                                check=True,
+                                text=True,
+                                shell=True)
         logger.debug(f"npm 版本: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
         errors.append("npm 未安装或不在 PATH 中，请先安装 Node.js")
@@ -188,7 +197,8 @@ def check_dependencies(logger):
             logger.warning("检测到前端依赖未安装，正在安装...")
             try:
                 subprocess.run(['npm', 'install'],
-                               cwd=frontend_dir, check=True)
+                               cwd=frontend_dir,
+                               check=True)
                 logger.info("前端依赖安装完成")
             except subprocess.CalledProcessError:
                 errors.append("前端依赖安装失败，请手动运行: cd frontend && npm install")
@@ -269,30 +279,26 @@ def start_services(logger: logging.Logger,
             python_path = project_root / '.venv' / 'bin' / 'python'
 
         backend_cmd = [
-            str(python_path), '-m', 'uvicorn',
-            'backend.app.main:app',
-            '--host', host,
-            '--port', str(port)
+            str(python_path), '-m', 'uvicorn', 'backend.app.main:app',
+            '--host', host, '--port',
+            str(port)
         ]
 
-        backend_process = subprocess.Popen(
-            backend_cmd,
-            cwd=project_root,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            encoding='utf-8',
-            errors='replace'
-        )
+        backend_process = subprocess.Popen(backend_cmd,
+                                           cwd=project_root,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT,
+                                           text=True,
+                                           bufsize=1,
+                                           encoding='utf-8',
+                                           errors='replace')
         processes.append(('后端', backend_process, backend_logger))
 
         # 启动后端日志读取线程
-        backend_thread = threading.Thread(
-            target=read_process_output,
-            args=('后端', backend_process, backend_logger),
-            daemon=True
-        )
+        backend_thread = threading.Thread(target=read_process_output,
+                                          args=('后端', backend_process,
+                                                backend_logger),
+                                          daemon=True)
         backend_thread.start()
         threads.append(backend_thread)
 
@@ -306,25 +312,22 @@ def start_services(logger: logging.Logger,
         frontend_dir = project_root / 'frontend'
         frontend_cmd = ['npm', 'run', 'dev']
 
-        frontend_process = subprocess.Popen(
-            frontend_cmd,
-            cwd=frontend_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            encoding='utf-8',
-            errors='replace',
-            shell=True
-        )
+        frontend_process = subprocess.Popen(frontend_cmd,
+                                            cwd=frontend_dir,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.STDOUT,
+                                            text=True,
+                                            bufsize=1,
+                                            encoding='utf-8',
+                                            errors='replace',
+                                            shell=True)
         processes.append(('前端', frontend_process, frontend_logger))
 
         # 启动前端日志读取线程
-        frontend_thread = threading.Thread(
-            target=read_process_output,
-            args=('前端', frontend_process, frontend_logger),
-            daemon=True
-        )
+        frontend_thread = threading.Thread(target=read_process_output,
+                                           args=('前端', frontend_process,
+                                                 frontend_logger),
+                                           daemon=True)
         frontend_thread.start()
         threads.append(frontend_thread)
 
@@ -336,7 +339,8 @@ def start_services(logger: logging.Logger,
         logger.info(
             f"{Colors.BLUE}  后端地址: http://{display_host}:{port}{Colors.RESET}")
         logger.info(
-            f"{Colors.BLUE}  API 文档: http://{display_host}:{port}/docs{Colors.RESET}")
+            f"{Colors.BLUE}  API 文档: http://{display_host}:{port}/docs{Colors.RESET}"
+        )
         logger.info(
             f"{Colors.GREEN}  前端地址: http://localhost:5173{Colors.RESET}")
         logger.info("=" * 60)
@@ -383,7 +387,7 @@ def main():
     try:
         # 解析命令行参数
         parser = argparse.ArgumentParser(
-            description='饰品虚拟试戴系统 - 开发环境启动脚本',
+            description='随心穿戴v1.1.0 - 开发环境启动脚本',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog='''
 示例:
@@ -395,22 +399,17 @@ def main():
 
   # 仅修改端口
   python scripts/start.py --port 9000
-        '''
-        )
+        ''')
 
-        parser.add_argument(
-            '--host',
-            type=str,
-            default='0.0.0.0',
-            help='后端服务监听的主机地址 (默认: 0.0.0.0)'
-        )
+        parser.add_argument('--host',
+                            type=str,
+                            default='0.0.0.0',
+                            help='后端服务监听的主机地址 (默认: 0.0.0.0)')
 
-        parser.add_argument(
-            '--port',
-            type=int,
-            default=8000,
-            help='后端服务监听的端口 (默认: 8000)'
-        )
+        parser.add_argument('--port',
+                            type=int,
+                            default=8000,
+                            help='后端服务监听的端口 (默认: 8000)')
 
         args = parser.parse_args()
 
@@ -419,7 +418,7 @@ def main():
         system_logger = get_logger('系统')
 
         system_logger.info("=" * 60)
-        system_logger.info("  饰品虚拟试戴系统 - 开发环境启动脚本")
+        system_logger.info("  随心穿戴v1.1.0 - 开发环境启动脚本")
         system_logger.info("=" * 60)
         system_logger.info("")
 

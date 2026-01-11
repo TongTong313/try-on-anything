@@ -23,7 +23,7 @@
 
 Thanks to the flourishing development of diffusion models, many mature implementation solutions for virtual clothing try-on have emerged in the market. However, due to the characteristics of accessories such as diverse types, various shapes, different sizes, and varying wearing positions, the implementation difficulty of virtual accessory try-on is far greater than virtual clothing try-on. I once attempted to develop a virtual accessory try-on tool based on diffusion models + conditional control + Inpainting in 2024, but ultimately abandoned it due to poor results. 2025 is an exciting year, as image generation models represented by Nano Banana and Tongyi Wanxiang have made tremendous improvements in image generation quality compared to 2024, especially in text generation and fine detail control. In addition, with the increasing maturity of multimodal large model technology, the capability of vision-language models in visual understanding has been greatly enhanced. Against this backdrop, I decided to go all-in and combine vision-language models and image generation models to develop a "Try On Anything" tool that can not only achieve virtual accessory try-on, but also be compatible with clothing, tech products, and everything else.
 
-In the initial release, this project relies on vision-language models and image generation models to first implement a virtual accessory try-on system. Users only need to upload accessory photos and person photos containing the wearing area (face is not required), and the system can naturally place accessories (necklaces, earrings, watches, bracelets, etc.) onto person photos, generating realistic try-on effect images. The vision-language model is responsible for deep understanding of the user-uploaded accessory photos, extracting accessory type, wearing position, and accessory detail area, and returning the information to the image generation model; the image generation model is responsible for intelligently fusing the accessory image with the person image to generate realistic try-on effect images.
+This project relies on vision-language models and image generation models. Users only need to upload wearable item photos and person photos containing the wearing area (face is not required), and the system can naturally place the wearable items onto person photos, generating realistic try-on effect images. The vision-language model is responsible for deep understanding of the user-uploaded wearable item photos, extracting item type, wearing position, and item detail area, and returning the information to the image generation model; the image generation model is responsible for intelligently fusing the wearable item image with the person image to generate realistic try-on effect images.
 
 Due to the large scale and complex functionality of the project, I will continue to iterate and develop more features in the future. Stay tuned!
 
@@ -31,10 +31,11 @@ This project uses AI Coding technology to assist programming. I would like to ex
 
 ## 🎯 Key Features
 
-### v1.0.0: Virtual Accessory Try-On Basic Features
-- **Intelligent Recognition**: Automatically identifies accessory types (necklaces, earrings, watches, bracelets, etc.) and optimal wearing positions based on vision-language models
+### v1.1.0: Clothing Try-On Support!
+
+- **Intelligent Recognition**: Automatically identifies accessory/clothing types and optimal wearing positions based on vision-language models
 - **High-Quality Generation**: Generates natural and realistic try-on effects based on premium image generation models
-- **Flexible Configuration**: Supports manual specification of accessory types and positions for fine-grained requirements
+- **Flexible Configuration**: Supports manual specification of accessory/clothing types and positions for fine-grained requirements
 - **Easy Deployment**: Provides one-click startup script for quick local service setup
 - **Async Architecture**: Supports multiple try-on tasks running asynchronously
 - **Bilingual Support**: Complete Chinese-English interface switching
@@ -173,13 +174,27 @@ Frontend service will start at http://localhost:5173
 
 ## 📝 Usage Instructions
 
+### Accessory Try-On
+
 1. Open browser and visit http://localhost:5173
-2. Upload accessory image (supports necklaces, earrings, watches, bracelets, etc.)
-3. Upload person image
-4. Optional: Manually specify accessory type and wearing position in advanced settings
-5. Click "Start Try-On" button
-6. Wait for system to generate try-on effect image (approximately 30-60 seconds)
-7. View results and download
+2. Select "Accessory Try-On" mode at the top
+3. Upload accessory image (supports necklaces, earrings, watches, bracelets, etc.)
+4. Upload person image
+5. Optional: Manually specify accessory type and wearing position in advanced settings
+6. Click "Start Try-On" button
+7. Wait for system to generate try-on effect image (approximately 30-60 seconds)
+8. View results and download
+
+### Clothing Try-On
+
+1. Open browser and visit http://localhost:5173
+2. Select "Clothing Try-On" mode at the top
+3. Upload clothing image (supports tops, pants, skirts, coats, etc.)
+4. Upload person image
+5. Optional: Manually specify clothing type and wearing position in advanced settings
+6. Click "Start Try-On" button
+7. Wait for system to generate try-on effect image (approximately 30-60 seconds)
+8. View results and download
 
 ## ⚙️ Advanced Settings
 
@@ -201,14 +216,27 @@ Click the "Help" button in the top navigation bar to view the complete project d
 
 ## 📡 API Endpoints
 
+### Accessory Try-On API
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/tryon/submit` | POST | Submit try-on task |
-| `/api/tryon/status/{task_id}` | GET | Query task status |
-| `/api/tryon/result/{task_id}` | GET | Get task result |
-| `/api/tryon/task/{task_id}` | DELETE | Delete task |
-| `/api/tryon/resubmit/{task_id}` | PUT | Resubmit task |
-| `/api/tryon/test-connection` | POST | Test API Key connection |
+| `/api/accessory-try-on/submit` | POST | Submit accessory try-on task |
+| `/api/accessory-try-on/status/{task_id}` | GET | Query task status |
+| `/api/accessory-try-on/result/{task_id}` | GET | Get task result |
+| `/api/accessory-try-on/task/{task_id}` | DELETE | Delete task |
+| `/api/accessory-try-on/resubmit/{task_id}` | PUT | Resubmit task |
+| `/api/accessory-try-on/test-connection` | POST | Test API Key connection |
+
+### Clothing Try-On API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/clothing-try-on/submit` | POST | Submit clothing try-on task |
+| `/api/clothing-try-on/status/{task_id}` | GET | Query task status |
+| `/api/clothing-try-on/result/{task_id}` | GET | Get task result |
+| `/api/clothing-try-on/task/{task_id}` | DELETE | Delete task |
+| `/api/clothing-try-on/resubmit/{task_id}` | PUT | Resubmit task |
+| `/api/clothing-try-on/test-connection` | POST | Test API Key connection |
 
 For detailed API documentation, visit: http://localhost:8000/docs
 

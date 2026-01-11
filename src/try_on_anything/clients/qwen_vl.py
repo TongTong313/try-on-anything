@@ -1,7 +1,7 @@
 from openai import AsyncOpenAI
 import os
 from pydantic import BaseModel
-from typing import Optional, Union, AsyncGenerator, Dict, Literal
+from typing import Optional, Union, AsyncGenerator, Dict, Literal, List, Any
 
 
 class ChatResponse(BaseModel):
@@ -24,9 +24,11 @@ class QwenVLClient:
         base_url (str, optional): API 基础 URL，默认值为 "https://dashscope.aliyuncs.com/compatible-mode/v1"。
     """
 
-    def __init__(self,
-                 api_key: Optional[str] = None,
-                 base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"):
+    def __init__(
+            self,
+            api_key: Optional[str] = None,
+            base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    ):
 
         self.api_key = api_key or os.getenv("DASHSCOPE_API_KEY")
         if not self.api_key:
@@ -36,14 +38,13 @@ class QwenVLClient:
 
     async def chat(
         self,
-        messages: list[dict],
+        messages: List[Dict[str, Any]],
         model: str = "qwen3-vl-plus",
         stream: bool = False,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         enable_thinking: bool = False,
         thinking_budget: Optional[int] = None
-
     ) -> Union[ChatResponse, AsyncGenerator[dict, None]]:
         """与 Qwen-VL 模型进行对话
 
@@ -70,16 +71,16 @@ class QwenVLClient:
             kwargs["max_tokens"] = max_tokens
 
         if enable_thinking and thinking_budget is None:
-            raise ValueError(
-                "启用思考模式时，必须提供 thinking_budget 参数")
+            raise ValueError("启用思考模式时，必须提供 thinking_budget 参数")
         elif enable_thinking and thinking_budget <= 0:
-            raise ValueError(
-                "thinking_budget 参数必须为正整数")
+            raise ValueError("thinking_budget 参数必须为正整数")
 
         if enable_thinking:
             kwargs["extra_body"] = {
-                "enable_thinking": True,
-                "thinking_budget": thinking_budget if thinking_budget is not None else 8192
+                "enable_thinking":
+                True,
+                "thinking_budget":
+                thinking_budget if thinking_budget is not None else 8192
             }
 
         if stream:
@@ -88,10 +89,8 @@ class QwenVLClient:
             response = await self.client.chat.completions.create(**kwargs)
             message = response.choices[0].message
             reasoning_content = getattr(message, 'reasoning_content', None)
-            return ChatResponse(
-                content=message.content or "",
-                reasoning_content=reasoning_content
-            )
+            return ChatResponse(content=message.content or "",
+                                reasoning_content=reasoning_content)
 
     async def _stream_chat(self, **kwargs) -> AsyncGenerator[Dict, None]:
         """流式输出的内部实现

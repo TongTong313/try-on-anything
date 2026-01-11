@@ -1,39 +1,28 @@
+from typing import Optional, Dict, Any
+import textwrap
+
 from .base import DashScopeImageGenerator
 from ..clients import WanModelClient
 from ..common.constants import (DEFAULT_POLL_INTERVAL, DEFAULT_MAX_WAIT_TIME,
                                 HTTP_REQUEST_TIMEOUT)
-import textwrap
-from typing import Optional, Dict, Any
 
 
-class AccessoryTryOnImageGenerator(DashScopeImageGenerator):
-    """饰品试戴效果图生成器，继承自 DashScopeImageGenerator
-
-    至少需要输入两个图像：
-    1. 饰品图像 (accessory_img)
-    2. 人物图像 (person_img)
-    可选输入图像：饰品细节图像（比如项链的吊坠）(accessory_detail_img)
-    **额外输入饰品细节图像有利于增强试戴效果，尤其对于小饰品效果更佳**
-
-    输出：试戴效果图(try_on_img)
+class ClothingTryOnImageGenerator(DashScopeImageGenerator):
+    """服装试穿效果图生成器，继承自 DashScopeImageGenerator   
 
     Args:
         wan_client (WanModelClient): Wan 模型客户端实例
         download_root_path (str, optional): 下载生成的图片保存路径，默认为 None。如果保存路径为 None，则不下载生成的图片。
     """
 
-    # 饰品试戴的额外要求提示词
+    # 基础提示词模板
+    _BASE_PROMPT = "请将图1的{clothing_type}穿到图2人物的{person_position}，生成一张试穿效果图，需要注意不允许修改图2人物图像的其他任何元素，保证衣服和人物的比例合理"
+
+    # 服装试穿的额外要求提示词
     _ADDITIONAL_REQUIREMENTS_PROMPT = textwrap.dedent("""\
         # 额外要求：
-        1. 对于项链来说，它的吊坠部分是相对较小的，没有人会戴一个很大的吊坠，提供的图1和图3（如果有的话）都是放大的图像，为了让你更理解项链的细节，所以请确保生成效果图的吊坠部分与图2人物的脖子比例合理
-        2. 对于耳环来说，它的耳钉部分是相对较小的，没有人会戴一个很大的耳钉，提供的图1和图3（如果有的话）都是放大的图像，为了让你更理解耳环的细节，所以请确保生成效果图的耳钉部分与图2人物的耳朵比例合理
+        1. 衣服试穿要彻底，要彻底删除原有的人物对应的服装，不要保留任何痕迹
     """)
-
-    # 基础提示词模板
-    _BASE_PROMPT = "请将图1{accessory_type}戴到图2人物的{person_position}，生成一张试戴效果图，需要注意不允许修改图2人物图像的其他任何元素，保证饰品和人物的比例合理"
-
-    # 包含细节图像的提示词后缀
-    _DETAIL_IMG_SUFFIX = "，图3是图1的饰品细节图像，要确保生成效果图的饰品细节与图3的饰品细节保持完全一致"
 
     def __init__(self,
                  wan_client: WanModelClient,
@@ -42,35 +31,30 @@ class AccessoryTryOnImageGenerator(DashScopeImageGenerator):
                          download_root_path=download_root_path)
 
     def _build_prompt(self,
-                      accessory_type: Optional[str] = None,
-                      person_position: Optional[str] = None,
-                      has_accessory_detail_img: bool = False) -> str:
-        """根据饰品类型、佩戴位置和是否存在饰品细节图像构建提示词
+                      clothing_type: Optional[str] = None,
+                      person_position: Optional[str] = None) -> str:
+        """根据不同的服装类型和穿戴位置构建提示词
 
         Args:
-            accessory_type (Optional[str]): 饰品类型（例如：项链、耳环、手链、手表等），默认值为 None
-            person_position (Optional[str]): 饰品的人物佩戴位置（例如：脖子、手腕、手指等），默认值为 None
-            has_accessory_detail_img (bool): 是否有饰品细节图像，默认值为 False
+            clothing_type (Optional[str]): 服装类型（例如：上衣、裤子、鞋子等），默认值为 None
+            person_position (Optional[str]): 服装的人物穿戴位置（例如：上身、下身、脚上等），默认值为 None
 
         Returns:
             str: 构建的提示词
         """
         prompt = self._BASE_PROMPT.format(
-            accessory_type=accessory_type if accessory_type else '饰品',
+            clothing_type=clothing_type if clothing_type else '服装',
             person_position=person_position if person_position else '对应位置')
-        if has_accessory_detail_img:
-            prompt += self._DETAIL_IMG_SUFFIX
-
         prompt += f"\n{self._ADDITIONAL_REQUIREMENTS_PROMPT}"
+
         return prompt
 
     async def generate_try_on_img(
             self,
-            accessory_img_path: str,
+            clothing_img_path: str,
             person_img_path: str,
-            accessory_type: Optional[str] = None,
+            clothing_type: Optional[str] = None,
             person_position: Optional[str] = None,
-            accessory_detail_img_path: Optional[str] = None,
             model: str = "wan2.6-image",
             negative_prompt: str = "",
             prompt_extend: bool = True,
@@ -79,14 +63,13 @@ class AccessoryTryOnImageGenerator(DashScopeImageGenerator):
             poll_interval: float = DEFAULT_POLL_INTERVAL,
             max_wait_time: float = DEFAULT_MAX_WAIT_TIME,
             timeout: float = HTTP_REQUEST_TIMEOUT) -> Dict[str, Any]:
-        """生成饰品试戴效果图
+        """生成服装试穿效果图
 
         Args:
-            accessory_img_path (str): 饰品图像路径
+            clothing_img_path (str): 服装图像路径
             person_img_path (str): 人物图像路径
-            accessory_type (Optional[str]): 饰品类型（例如：项链、耳环、手链、手表等），默认值为 None
-            person_position (Optional[str]): 饰品的人物佩戴位置（例如：脖子、手腕、手指等），默认值为 None
-            accessory_detail_img_path (Optional[str]): 饰品细节图像路径，默认值为 None
+            clothing_type (Optional[str]): 服装类型（例如：上衣、裤子、鞋子等），默认值为 None
+            person_position (Optional[str]): 服装的人物穿戴位置（例如：上身、下身、脚上等），默认值为 None
             model (str, optional): 生成模型名称，默认为 "wan2.6-image"
             negative_prompt (str, optional): 负面提示词，默认值为 ""
             prompt_extend (bool, optional): 是否扩展提示词，默认值为 True
@@ -97,7 +80,7 @@ class AccessoryTryOnImageGenerator(DashScopeImageGenerator):
             timeout (float, optional): 请求超时时间（秒），默认值为 HTTP_REQUEST_TIMEOUT (60.0)
 
         Returns:
-            Dict[str, Any]: 生成的试戴效果图结果（由 DashScope 图像生成 API 提供）
+            Dict[str, Any]: 生成的试穿效果图结果（由 DashScope 图像生成 API 提供）
 
         Raises:
             FileNotFoundError: 当图像文件不存在时
@@ -111,15 +94,11 @@ class AccessoryTryOnImageGenerator(DashScopeImageGenerator):
         output_size = self._choose_output_img_size(person_img_size)
 
         # 准备图像列表
-        images = [accessory_img_path, person_img_path]
-        if accessory_detail_img_path:
-            images.append(accessory_detail_img_path)
+        images = [clothing_img_path, person_img_path]
 
         # 构建提示词
-        prompt = self._build_prompt(
-            accessory_type=accessory_type,
-            person_position=person_position,
-            has_accessory_detail_img=accessory_detail_img_path is not None)
+        prompt = self._build_prompt(clothing_type=clothing_type,
+                                    person_position=person_position)
 
         # 调用生成图像接口
         result = await self.call_generate_model(

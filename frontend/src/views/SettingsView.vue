@@ -28,6 +28,15 @@
           <el-form :model="form" label-width="150px" label-position="left">
         <el-divider content-position="left">{{ $t('settings.apiConfig') }}</el-divider>
 
+        <!-- API配置说明 -->
+        <el-alert
+          :title="$t('settings.apiConfigNote')"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px"
+        />
+
         <el-form-item :label="$t('settings.configMethod')">
           <el-radio-group v-model="form.configMethod">
             <el-radio value="env">{{ $t('settings.useEnvVar') }}</el-radio>
@@ -168,13 +177,16 @@
           <el-form :model="featuresForm" label-width="150px" label-position="left">
             <el-divider content-position="left">{{ $t('settings.featuresConfig') }}</el-divider>
 
-            <!-- VL模型增强 -->
+            <!-- VL模型增强（通用） -->
             <el-form-item :label="$t('settings.vlModelEnhance')">
               <el-switch v-model="featuresForm.useVlModel" />
               <el-text class="vl-tip" type="warning" size="small">
                 {{ $t('settings.vlModelEnhanceTip') }}
               </el-text>
             </el-form-item>
+
+            <!-- 饰品试戴配置 -->
+            <el-divider content-position="left">{{ $t('settings.accessoryTryonConfig') }}</el-divider>
 
             <!-- 饰品类型 -->
             <el-form-item :label="$t('settings.accessoryType')">
@@ -194,6 +206,28 @@
                 <el-option :label="$t('tryon.positions.ear')" value="耳朵" />
                 <el-option :label="$t('tryon.positions.wrist')" value="手腕" />
                 <el-option :label="$t('tryon.positions.finger')" value="手指" />
+              </el-select>
+            </el-form-item>
+
+            <!-- 服装试穿配置 -->
+            <el-divider content-position="left">{{ $t('settings.clothingTryonConfig') }}</el-divider>
+
+            <!-- 服装类型 -->
+            <el-form-item :label="$t('settings.clothingType')">
+              <el-select v-model="featuresForm.clothingType" :placeholder="$t('settings.autoDetect')" clearable>
+                <el-option :label="$t('tryon.clothingTypes.top')" value="上衣" />
+                <el-option :label="$t('tryon.clothingTypes.pants')" value="裤子" />
+                <el-option :label="$t('tryon.clothingTypes.skirt')" value="裙子" />
+                <el-option :label="$t('tryon.clothingTypes.jacket')" value="外套" />
+              </el-select>
+            </el-form-item>
+
+            <!-- 穿着位置 -->
+            <el-form-item :label="$t('settings.wearingPosition')">
+              <el-select v-model="featuresForm.wearingPosition" :placeholder="$t('settings.autoDetect')" clearable>
+                <el-option :label="$t('tryon.clothingPositions.upperBody')" value="上半身" />
+                <el-option :label="$t('tryon.clothingPositions.lowerBody')" value="下半身" />
+                <el-option :label="$t('tryon.clothingPositions.fullBody')" value="全身" />
               </el-select>
             </el-form-item>
 
@@ -242,7 +276,9 @@ const form = reactive({
 const featuresForm = reactive({
   useVlModel: true,
   jewelryType: '',
-  personPosition: ''
+  personPosition: '',
+  clothingType: '',
+  wearingPosition: ''
 })
 
 // 显示/隐藏API Key
@@ -346,6 +382,8 @@ const handleSaveFeatures = () => {
     localStorage.setItem('useVlModel', featuresForm.useVlModel.toString())
     localStorage.setItem('defaultJewelryType', featuresForm.jewelryType)
     localStorage.setItem('defaultPersonPosition', featuresForm.personPosition)
+    localStorage.setItem('defaultClothingType', featuresForm.clothingType)
+    localStorage.setItem('defaultWearingPosition', featuresForm.wearingPosition)
 
     ElMessage({
       message: t('settings.saveSuccess'),
@@ -522,6 +560,16 @@ onMounted(() => {
   const savedPersonPosition = localStorage.getItem('defaultPersonPosition')
   if (savedPersonPosition) {
     featuresForm.personPosition = savedPersonPosition
+  }
+
+  const savedClothingType = localStorage.getItem('defaultClothingType')
+  if (savedClothingType) {
+    featuresForm.clothingType = savedClothingType
+  }
+
+  const savedWearingPosition = localStorage.getItem('defaultWearingPosition')
+  if (savedWearingPosition) {
+    featuresForm.wearingPosition = savedWearingPosition
   }
 })
 </script>

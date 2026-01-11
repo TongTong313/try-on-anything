@@ -51,6 +51,8 @@ function handleFileChange(uploadFile) {
 }
 
 // 监听外部变化，同步更新预览
+// 使用 immediate: true 确保组件挂载时立即检查 modelValue 并生成预览
+// 解决：路由切换返回后，从 IndexedDB 恢复的图片无法显示的问题
 watch(() => props.modelValue, (newVal, oldVal) => {
   // 释放旧的预览URL，避免内存泄漏
   if (previewUrl.value) {
@@ -64,7 +66,7 @@ watch(() => props.modelValue, (newVal, oldVal) => {
     // 生成新的预览URL
     previewUrl.value = URL.createObjectURL(newVal)
   }
-})
+}, { immediate: true })
 </script>
 
 <style scoped>

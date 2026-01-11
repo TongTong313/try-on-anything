@@ -83,6 +83,17 @@
       "wrist": "手腕",
       "finger": "手指"
     },
+    "clothingTypes": {
+      "top": "上衣",
+      "pants": "裤子",
+      "skirt": "裙子",
+      "jacket": "外套"
+    },
+    "clothingPositions": {
+      "upperBody": "上半身",
+      "lowerBody": "下半身",
+      "fullBody": "全身"
+    },
     "taskStatus": {
       "pending": "等待中",
       "processing": "处理中",
@@ -109,18 +120,24 @@
     "title": "任务列表",
     "empty": "暂无任务",
     "newTask": "新建任务",
-    "emptyTip": "暂无任务，点击上方按钮创建",
+    "newAccessoryTask": "饰品试戴",
+    "newClothingTask": "服装试穿",
+    "emptyTip": "暂无任务，点击右上角新建",
     "taskId": "任务ID",
     "status": "状态",
     "createdAt": "创建时间",
     "viewResult": "查看结果",
-    "delete": "删除"
+    "delete": "删除",
+    "accessory": "饰品",
+    "clothing": "服装"
   },
   "resultDisplay": {
     "title": "试戴效果",
+    "clothingTitle": "试穿效果",
     "originalImage": "原始图片",
     "resultImage": "效果图",
     "accessoryImage": "饰品图片",
+    "clothingImage": "服装图片",
     "personImage": "人物图片",
     "accessoryInfo": "饰品信息",
     "accessoryType": "饰品类型",
@@ -141,6 +158,7 @@
     "language": "界面语言",
     "languageChanged": "语言切换成功",
     "apiConfig": "API配置",
+    "apiConfigNote": "注意：以下配置的API Key将用于所有功能（饰品试戴和服装试穿）",
     "configMethod": "配置方式",
     "useEnvVar": "使用环境变量",
     "manualInput": "手动输入API Key",
@@ -175,10 +193,14 @@
     "showApiKey": "显示API Key",
     "hideApiKey": "隐藏API Key",
     "featuresConfig": "功能配置",
+    "accessoryTryonConfig": "饰品试戴配置",
+    "clothingTryonConfig": "服装试穿配置",
     "vlModelEnhance": "VL模型增强",
-    "vlModelEnhanceTip": "开启后将使用VL模型自动识别饰品，效果更好但会消耗更多Token",
+    "vlModelEnhanceTip": "开启后将使用VL模型自动识别，效果更好但会消耗更多Token",
     "accessoryType": "饰品类型",
+    "clothingType": "服装类型",
     "personPosition": "佩戴位置",
+    "wearingPosition": "穿着位置",
     "autoDetect": "自动识别"
   },
   "messages": {
@@ -194,8 +216,30 @@
   },
   "features": {
     "accessoryTryon": "饰品试戴",
-    "clothingTryon": "衣服试穿",
-    "comingSoon": "敬请期待"
+    "clothingTryon": "服装试穿",
+    "comingSoon": "敬请期待",
+    "noTaskHint": "请点击左侧\"新建任务\"按钮创建任务"
+  },
+  "clothingTryon": {
+    "usageGuide": "使用说明",
+    "supportedTypes": "支持的服装类型",
+    "supportedTypesDesc": "上衣、裤子、裙子、外套等各类服装",
+    "clothingRequirement": "服装照片要求",
+    "clothingRequirementDesc": "建议使用服装正面清晰照片，以保证最优效果",
+    "personRequirement": "人物照片要求",
+    "personRequirementDesc": "需包含服装对应的穿着部位，建议使用全身或半身照",
+    "uploadClothing": "上传服装图片",
+    "uploadPerson": "上传人物图片",
+    "startTryon": "开始试穿",
+    "clothingHint": "建议使用正面清晰照片",
+    "personHint": "需包含对应穿着部位",
+    "preparing": "准备中...",
+    "uploading": "正在上传图片...",
+    "vlAnalyzing": "VL模型分析服装中...",
+    "generating": "试穿图像生成中...",
+    "processing": "处理中...",
+    "waitingUpload": "等待上传图片...",
+    "retrying": "正在重新生成..."
   },
   "theme": {
     "light": "浅色模式",

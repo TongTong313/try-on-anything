@@ -83,6 +83,17 @@
       "wrist": "Wrist",
       "finger": "Finger"
     },
+    "clothingTypes": {
+      "top": "Top",
+      "pants": "Pants",
+      "skirt": "Skirt",
+      "jacket": "Jacket"
+    },
+    "clothingPositions": {
+      "upperBody": "Upper Body",
+      "lowerBody": "Lower Body",
+      "fullBody": "Full Body"
+    },
     "taskStatus": {
       "pending": "Pending",
       "processing": "Processing",
@@ -109,18 +120,24 @@
     "title": "Task List",
     "empty": "No tasks",
     "newTask": "New Task",
-    "emptyTip": "No tasks, click the button above to create",
+    "newAccessoryTask": "Accessory Try-On",
+    "newClothingTask": "Clothing Try-On",
+    "emptyTip": "No tasks, click the button in the upper right corner to create",
     "taskId": "Task ID",
     "status": "Status",
     "createdAt": "Created At",
     "viewResult": "View Result",
-    "delete": "Delete"
+    "delete": "Delete",
+    "accessory": "Accessory",
+    "clothing": "Clothing"
   },
   "resultDisplay": {
     "title": "Try-On Result",
+    "clothingTitle": "Clothing Try-On Result",
     "originalImage": "Original Image",
     "resultImage": "Result Image",
     "accessoryImage": "Accessory Image",
+    "clothingImage": "Clothing Image",
     "personImage": "Person Image",
     "accessoryInfo": "Accessory Info",
     "accessoryType": "Accessory Type",
@@ -141,6 +158,7 @@
     "language": "Interface Language",
     "languageChanged": "Language changed successfully",
     "apiConfig": "API Configuration",
+    "apiConfigNote": "Note: The API Key configured below will be used for all features (Accessory Try-On and Clothing Try-On)",
     "configMethod": "Configuration Method",
     "useEnvVar": "Use Environment Variable",
     "manualInput": "Manual Input API Key",
@@ -175,10 +193,14 @@
     "showApiKey": "Show API Key",
     "hideApiKey": "Hide API Key",
     "featuresConfig": "Features Configuration",
+    "accessoryTryonConfig": "Accessory Try-On Configuration",
+    "clothingTryonConfig": "Clothing Try-On Configuration",
     "vlModelEnhance": "VL Model Enhancement",
-    "vlModelEnhanceTip": "When enabled, VL model will auto-detect accessories for better results but consumes more tokens",
+    "vlModelEnhanceTip": "When enabled, VL model will auto-detect for better results but consumes more tokens",
     "accessoryType": "Accessory Type",
+    "clothingType": "Clothing Type",
     "personPosition": "Wearing Position",
+    "wearingPosition": "Wearing Position",
     "autoDetect": "Auto Detect"
   },
   "messages": {
@@ -195,7 +217,29 @@
   "features": {
     "accessoryTryon": "Accessory Try-On",
     "clothingTryon": "Clothing Try-On",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "noTaskHint": "Please click the \"New Task\" button on the left to create a task"
+  },
+  "clothingTryon": {
+    "usageGuide": "Usage Guide",
+    "supportedTypes": "Supported Clothing Types",
+    "supportedTypesDesc": "Tops, pants, skirts, jackets and other clothing items",
+    "clothingRequirement": "Clothing Photo Requirements",
+    "clothingRequirementDesc": "Recommend using clear front-facing photos for best results",
+    "personRequirement": "Person Photo Requirements",
+    "personRequirementDesc": "Must include the corresponding wearing area, full or half body photo recommended",
+    "uploadClothing": "Upload Clothing Image",
+    "uploadPerson": "Upload Person Image",
+    "startTryon": "Start Try-On",
+    "clothingHint": "Recommend clear front-facing photo",
+    "personHint": "Must include wearing area",
+    "preparing": "Preparing...",
+    "uploading": "Uploading images...",
+    "vlAnalyzing": "Analyzing clothing with VL model...",
+    "generating": "Generating try-on image...",
+    "processing": "Processing...",
+    "waitingUpload": "Waiting for image upload...",
+    "retrying": "Retrying..."
   },
   "theme": {
     "light": "Light Mode",

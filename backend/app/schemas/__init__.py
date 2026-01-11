@@ -2,8 +2,9 @@
 """
 数据模型包
 """
-from .tryon import (
+from .common import (
     TaskStatus,
+    TaskType,
     TryOnSubmitResponse,
     TaskStatusResponse,
     TryOnResultResponse,
@@ -12,6 +13,7 @@ from .tryon import (
 
 __all__ = [
     "TaskStatus",
+    "TaskType",
     "TryOnSubmitResponse",
     "TaskStatusResponse",
     "TryOnResultResponse",

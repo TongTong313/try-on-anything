@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 import uuid
 
-from ..schemas import TaskStatus
+from ..schemas import TaskStatus, TaskType
 from ..config import Config
 
 # 配置日志
@@ -26,6 +26,7 @@ class TaskInfo:
     Args:
         task_id (str): 任务ID
         task_dir (Path): 任务专属文件夹路径
+        task_type (TaskType): 任务类型（饰品试戴或服装穿戴）
 
     Attributes:
         status (TaskStatus): 任务状态
@@ -35,16 +36,22 @@ class TaskInfo:
         error_message (Optional[str]): 任务错误信息
         created_at (datetime): 任务创建时间
         updated_at (datetime): 任务最后更新时间
-        accessory_image_path (Optional[str]): 饰品图片路径
         person_image_path (Optional[str]): 人物图片路径
-        accessory_detail_image_path (Optional[str]): 饰品细节图路径
-        accessory_type (Optional[str]): 识别出的饰品类型
-        person_position (Optional[str]): 识别出的人物佩戴位置
+        person_position (Optional[str]): 识别出的穿戴位置
+        accessory_image_path (Optional[str]): 饰品图片路径（饰品任务）
+        accessory_detail_image_path (Optional[str]): 饰品细节图路径（饰品任务）
+        accessory_type (Optional[str]): 识别出的饰品类型（饰品任务）
+        clothing_image_path (Optional[str]): 服装图片路径（服装任务）
+        clothing_type (Optional[str]): 识别出的服装类型（服装任务）
     """
 
-    def __init__(self, task_id: str, task_dir: Path):
+    def __init__(self, task_id: str, task_dir: Path, task_type: TaskType):
+        # 基础信息
         self.task_id: str = task_id
-        self.task_dir: Path = task_dir  # 任务专属文件夹路径
+        self.task_dir: Path = task_dir
+        self.task_type: TaskType = task_type
+
+        # 任务状态信息
         self.status: TaskStatus = TaskStatus.PENDING
         self.message: str = "任务已创建，等待处理"
         self.progress: int = 0
@@ -52,13 +59,19 @@ class TaskInfo:
         self.error_message: Optional[str] = None
         self.created_at: datetime = datetime.now()
         self.updated_at: datetime = datetime.now()
-        # 存储任务相关的文件路径
-        self.accessory_image_path: Optional[str] = None
+
+        # 公共图片路径
         self.person_image_path: Optional[str] = None
-        self.accessory_detail_image_path: Optional[str] = None
-        # 存储识别结果
-        self.accessory_type: Optional[str] = None
         self.person_position: Optional[str] = None
+
+        # 饰品专属字段
+        self.accessory_image_path: Optional[str] = None
+        self.accessory_detail_image_path: Optional[str] = None
+        self.accessory_type: Optional[str] = None
+
+        # 服装专属字段
+        self.clothing_image_path: Optional[str] = None
+        self.clothing_type: Optional[str] = None
 
     def update_status(self,
                       status: TaskStatus,
@@ -118,11 +131,14 @@ class TaskManager:
         self._tasks: Dict[str, TaskInfo] = {}
         self._lock = asyncio.Lock()  # 异步锁，保护任务字典的并发访问
 
-    async def create_task(self) -> Tuple[TaskInfo, Optional[str]]:
+    async def create_task(self, task_type: TaskType) -> Tuple[TaskInfo, Optional[str]]:
         """创建新任务，同时创建任务专属文件夹
 
         Fetures:
             - 如果任务数量超过上限，会自动删除最早的任务
+
+        Args:
+            task_type (TaskType): 任务类型（饰品试戴或服装穿戴）
 
         Returns:
             Tuple[TaskInfo, Optional[str]]: 新创建的任务信息对象，以及被删除的旧任务ID（如果有）
@@ -145,7 +161,7 @@ class TaskManager:
             # 创建任务专属文件夹
             task_dir = config.TASKS_DIR / task_id
             task_dir.mkdir(parents=True, exist_ok=True)
-            task_info = TaskInfo(task_id, task_dir)
+            task_info = TaskInfo(task_id, task_dir, task_type)
             self._tasks[task_id] = task_info
             return task_info, deleted_task_id
 
@@ -182,17 +198,21 @@ class TaskManager:
             task_info.result = None
             task_info.error_message = None
             task_info.updated_at = datetime.now()
-            # 清除之前的识别结果
-            task_info.accessory_type = None
+            # 清除之前的识别结果（公共字段）
             task_info.person_position = None
+            # 清除饰品相关识别结果
+            task_info.accessory_type = None
+            # 清除服装相关识别结果
+            task_info.clothing_type = None
 
             return task_info
 
-    async def create_task_with_id(self, task_id: str) -> TaskInfo:
+    async def create_task_with_id(self, task_id: str, task_type: TaskType) -> TaskInfo:
         """使用指定的task_id创建任务（用于后端重启后恢复任务）
 
         Args:
             task_id (str): 指定的任务ID
+            task_type (TaskType): 任务类型（饰品试戴或服装穿戴）
         Returns:
             TaskInfo: 新创建的任务信息对象
         """
@@ -200,7 +220,7 @@ class TaskManager:
             # 创建任务专属文件夹
             task_dir = config.TASKS_DIR / task_id
             task_dir.mkdir(parents=True, exist_ok=True)
-            task_info = TaskInfo(task_id, task_dir)
+            task_info = TaskInfo(task_id, task_dir, task_type)
             self._tasks[task_id] = task_info
             return task_info
 
