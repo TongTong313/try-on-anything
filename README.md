@@ -182,24 +182,22 @@ npm run dev
 ### 饰品试戴
 
 1. 打开浏览器访问 http://localhost:5173
-2. 在顶部选择"饰品试戴"模式
+2. 新建任务，选择"饰品试戴"模式
 3. 上传饰品图片（支持项链、耳环、手表、手链等）
 4. 上传人物图片
-5. 可选：在高级设置中手动指定饰品类型和佩戴位置
-6. 点击"开始试戴"按钮
-7. 等待系统生成试戴效果图（约 30-60 秒）
-8. 查看效果并下载
+5. 点击"开始试戴"按钮
+6. 等待系统生成试戴效果图（约 30-60 秒）
+7. 查看效果并下载
 
 ### 服装试穿
 
 1. 打开浏览器访问 http://localhost:5173
-2. 在顶部选择"服装试穿"模式
+2. 新建任务，选择"服装试穿"模式
 3. 上传服装图片（支持上衣、裤子、裙子、外套等）
 4. 上传人物图片
-5. 可选：在高级设置中手动指定服装类型和穿着位置
-6. 点击"开始试穿"按钮
-7. 等待系统生成试穿效果图（约 30-60 秒）
-8. 查看效果并下载
+5. 点击"开始试穿"按钮
+6. 等待系统生成试穿效果图（约 30-60 秒）
+7. 查看效果并下载
 
 ## ⚙️ 高级设置
 
@@ -223,8 +221,8 @@ npm run dev
 
 ### 饰品试戴 API
 
-| 端点                                        | 方法   | 说明              |
-| ------------------------------------------- | ------ | ----------------- |
+| 端点                                       | 方法   | 说明              |
+| ------------------------------------------ | ------ | ----------------- |
 | `/api/accessory-try-on/submit`             | POST   | 提交饰品试戴任务  |
 | `/api/accessory-try-on/status/{task_id}`   | GET    | 查询任务状态      |
 | `/api/accessory-try-on/result/{task_id}`   | GET    | 获取任务结果      |
@@ -234,14 +232,14 @@ npm run dev
 
 ### 服装试穿 API
 
-| 端点                                        | 方法   | 说明              |
-| ------------------------------------------- | ------ | ----------------- |
-| `/api/clothing-try-on/submit`              | POST   | 提交服装试穿任务  |
-| `/api/clothing-try-on/status/{task_id}`    | GET    | 查询任务状态      |
-| `/api/clothing-try-on/result/{task_id}`    | GET    | 获取任务结果      |
-| `/api/clothing-try-on/task/{task_id}`      | DELETE | 删除任务          |
-| `/api/clothing-try-on/resubmit/{task_id}`  | PUT    | 重新提交任务      |
-| `/api/clothing-try-on/test-connection`     | POST   | 测试 API Key 连接 |
+| 端点                                      | 方法   | 说明              |
+| ----------------------------------------- | ------ | ----------------- |
+| `/api/clothing-try-on/submit`             | POST   | 提交服装试穿任务  |
+| `/api/clothing-try-on/status/{task_id}`   | GET    | 查询任务状态      |
+| `/api/clothing-try-on/result/{task_id}`   | GET    | 获取任务结果      |
+| `/api/clothing-try-on/task/{task_id}`     | DELETE | 删除任务          |
+| `/api/clothing-try-on/resubmit/{task_id}` | PUT    | 重新提交任务      |
+| `/api/clothing-try-on/test-connection`    | POST   | 测试 API Key 连接 |
 
 详细 API 文档请访问：http://localhost:8000/docs
 

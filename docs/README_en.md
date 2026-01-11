@@ -177,24 +177,22 @@ Frontend service will start at http://localhost:5173
 ### Accessory Try-On
 
 1. Open browser and visit http://localhost:5173
-2. Select "Accessory Try-On" mode at the top
+2. Create new task, select "Accessory Try-On" mode
 3. Upload accessory image (supports necklaces, earrings, watches, bracelets, etc.)
 4. Upload person image
-5. Optional: Manually specify accessory type and wearing position in advanced settings
-6. Click "Start Try-On" button
-7. Wait for system to generate try-on effect image (approximately 30-60 seconds)
-8. View results and download
+5. Click "Start Try-On" button
+6. Wait for system to generate try-on effect image (approximately 30-60 seconds)
+7. View results and download
 
 ### Clothing Try-On
 
 1. Open browser and visit http://localhost:5173
-2. Select "Clothing Try-On" mode at the top
+2. Create new task, select "Clothing Try-On" mode
 3. Upload clothing image (supports tops, pants, skirts, coats, etc.)
 4. Upload person image
-5. Optional: Manually specify clothing type and wearing position in advanced settings
-6. Click "Start Try-On" button
-7. Wait for system to generate try-on effect image (approximately 30-60 seconds)
-8. View results and download
+5. Click "Start Try-On" button
+6. Wait for system to generate try-on effect image (approximately 30-60 seconds)
+7. View results and download
 
 ## ⚙️ Advanced Settings
 
